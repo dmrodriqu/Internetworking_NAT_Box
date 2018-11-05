@@ -1,8 +1,8 @@
 # Collaborators:
-Sam Yap, Kathy Ji
+## Sam Yap, Kathy Ji
 
 
-Project Description
+# Project Description
 
 
   Commercial vendors use the term "wireless router"; for a device that
