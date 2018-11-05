@@ -1,5 +1,5 @@
 # Collaborators:
-## Sam Yap, Kathy Ji
+Sam Yap, Kathy Ji
 
 
 Project Description
