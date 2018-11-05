@@ -66,7 +66,10 @@ void	net_init (void)
 
 	/* Ask the user for a Bing ID */
 
-	found = FALSE;
+	found = TRUE;
+    bingid = 51; //group bing ID
+    //bingid = 100; //personal bing ID
+
 	while (!found) {
 		printf("\nEnter a bing ID between 0 and 255: ");
 		nchars = read(CONSOLE, buffer, 5);
@@ -93,6 +96,9 @@ void	net_init (void)
 	/* Ask the user what to run */
 
 	found = FALSE;
+    //host = TRUE;
+    ifprime = 0;
+	
 	while (!found) {
 		printf("\nEnter n for nat box or hX for host on interface X: ");
 		nchars = read(CONSOLE, buffer, 30);
@@ -155,7 +161,6 @@ void	net_init (void)
 		}
 
 		/* Set the state to "down" */
-
 		ifptr->if_state = IF_DOWN;
 
 		if (iface == 0) {
@@ -207,8 +212,8 @@ void	net_init (void)
 	if (tindex >= NMACADDRS) {
 		panic("net_init: no MAC address match\n");
 	}
-        
-        
+
+
 	if (host) {
 		printf("\nRunning host on %s\n", if_tab[ifprime].if_name);
 		if_tab[ifprime].if_state = IF_UP;
@@ -221,7 +226,7 @@ void	net_init (void)
 	}
 
 	/* Othernet 1 */
-	
+
 	ifptr = &if_tab[1];
 	ifptr->if_macucast[0] = 0x11;
 	ifptr->if_macucast[1] = 0xff & (uid >> 24);
@@ -236,14 +241,14 @@ void	net_init (void)
 	ifptr->if_macbcast[3] = 0xff;
 	ifptr->if_macbcast[4] = 0xff;
 	ifptr->if_macbcast[5] = 0xff & bingid;
-        
+
         if (ifptr->if_state == IF_UP) {
             control(ETHER0, ETH_CTRL_ADD_MCAST, (int32)ifptr->if_macucast, 0);
             control(ETHER0, ETH_CTRL_ADD_MCAST, (int32)ifptr->if_macbcast, 0);
         }
 
 	/* Othernet 2 */
-	
+
 	ifptr = &if_tab[2];
 	ifptr->if_macucast[0] = 0x21;
 	ifptr->if_macucast[1] = 0xff & (uid >> 24);
@@ -270,7 +275,7 @@ void	net_init (void)
 	/*	demultiplexes them to the correct interface		*/
 
 	resume(create(rawin, 4096, 8000, "raw_input", 0));
-	
+
 	for (iface=0; iface<NIFACES; iface++) {
 		sprintf(pname, "net%d_input", iface);
 		resume(create(netin, 4196, 5000, pname, 1, iface));
@@ -305,7 +310,6 @@ process	netin (
 		if (ifptr->if_head >= IF_QUEUESIZE) {
 			ifptr->if_head = 0;
 		}
-
 		/* Store interface number in packet buffer */
 
 		pkt->net_iface = iface;
@@ -317,23 +321,22 @@ process	netin (
 		/* Demultiplex on Ethernet type */
 
 		switch (pkt->net_type) {
-
 		    case ETH_ARP:			/* Handle ARP	*/
-			freebuf((char *)pkt);
+            freebuf((char *)pkt);
 			continue;
 
 		    case ETH_IP:			/* Handle IPv4	*/
             freebuf((char *)pkt);
 			continue;
-	
+
 		    case ETH_IPv6:			/* Handle IPv6	*/
-			ipv6_in();
-            //TODO: add a return value and check maybe
-            freebuf((char *)pkt);
+		//	hexdump(pkt, ETH_HDR_LEN + IPV6_HDR_LEN + 8 + 8 + 16);
+			ipv6_in(pkt);
 			continue;
 
 		    default:	/* Ignore all other incoming packets	*/
-			freebuf((char *)pkt);
+            kprintf("idk what to do with this bye\n");
+            freebuf((char *)pkt);
 			continue;
 		}
 	}
@@ -391,7 +394,7 @@ process	rawin (void) {
 			}
 
 			/* Check interface queue; drop packet if full	*/
-									
+
 			if (semcount(ifptr->if_sem) >= IF_QUEUESIZE) {
 				kprintf("rawin: queue overflow on %s\n",
 					if_tab[iface].if_name);
@@ -430,7 +433,7 @@ process	rawin (void) {
 			}
 
 			/* Check interface queue; drop packet if full	*/
-									
+
 			if (semcount(ifptr->if_sem) >= IF_QUEUESIZE) {
 				kprintf("rawin: queue overflow on %s\n",
 					if_tab[iface].if_name);
@@ -477,7 +480,7 @@ void 	eth_ntoh(
 }
 
 /*------------------------------------------------------------------------
- * getport  -  Retrieve a random port number 
+ * getport  -  Retrieve a random port number
  *------------------------------------------------------------------------
  */
 uint16 	getport(void)
